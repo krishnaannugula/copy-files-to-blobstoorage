@@ -51,7 +51,7 @@ stages:
               SourcePath: '$(Pipeline.Workspace)/drop'
               azureSubscription: 'azconnection'
               Destination: 'AzureBlob'
-              storage: '$(STAGINGSTORAGE)'
+              storage: 'webcsvviewerneustgsa'
               ContainerName: 'input'
               sasTokenTimeOutInMinutes: '240'
 
