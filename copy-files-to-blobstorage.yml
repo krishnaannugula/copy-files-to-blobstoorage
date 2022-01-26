@@ -6,7 +6,8 @@
 trigger:
 - master
 
-
+variables:
+  vmImageName: windows-latest
 
 stages:
 - stage: Build
