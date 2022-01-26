@@ -6,8 +6,6 @@
 trigger:
 - master
 
-variables:
-  vmImageName: windows-latest
 
 
 stages:
@@ -17,14 +15,14 @@ stages:
   - job: Build
     displayName: Build
     pool:
-      vmImage: $(vmImageName)
+      vmImage: $(VMIMAGENAME)
     steps:
       - checkout: self
         clean: true
       - task: CopyFiles@2
         displayName: copy files from
         inputs:
-          SourceFolder: 'TestStorage'
+          SourceFolder: 'source'
           Contents: '**'
           TargetFolder: '$(Build.ArtifactStagingDirectory)'
       - task: PublishBuildArtifacts@1
@@ -41,7 +39,7 @@ stages:
     displayName: Deploy
     environment: Staging
     pool:
-      vmImage: $(vmImageName)
+      vmImage: $(VMIMAGENAME)
     strategy:
       runOnce:
         deploy:
@@ -50,9 +48,9 @@ stages:
             displayName: 'AzureBlob File Copy'
             inputs:
               SourcePath: '$(Pipeline.Workspace)/drop'
-              azureSubscription: 'Azure for Students(1)(fe0e1401-29d7-4a84-8b63-24d1d6c39189)'
+              azureSubscription: 'azconnection'
               Destination: 'AzureBlob'
-              storage: $(STAGINGSTORAGE)
+              storage: '$(STAGINGSTORAGE)'
               ContainerName: 'input'
               sasTokenTimeOutInMinutes: '240'
 
@@ -62,17 +60,14 @@ stages:
               targetType: 'inline'
               script: |
                 # Write your PowerShell commands here.
-                
-                $webhookURL =
-                "https://kacorp173.webhook.office.com/webhookb2/65ec2ae1-1b20-4824-9811-feafb8ab253a@82bb0453-fb71-4ed9-a94c-9630e87971bc/IncomingWebhook/7386130c16984f2c8cd7dd8bb5ec6e0c/e1d27e51-b97e-471a-b7e9-ef6bd1c604c6"
-
+                              
                 $messageCardBody=@"
                 { "@type": "MessageCard", "@context": "https://schema.org/extensions", "summary": "1 new build message", "themeColor": "0078D7", "sections": [ { "activityImage": "https://cdn2.iconfinder.com/data/icons/weby-flat-vol-1/512/1_Approved-check-checkbox-confirm-green-success-tick-512.png", "activityTitle": "Notification", "activitySubtitle": "Copy Files", "facts": [ { "name": "EnvName:", "value": "$(Environment.Name)" }, { "name": "ApplicationName:", "value": "${env:STAGINGSTORAGE}" },{ "name": "BuildNumber:", "value": "$(Build.BuildNumber)" },{ "name": "BuildStatus:", "value": "$(Agent.JobStatus)" } ], "text": "Deployment to $(Environment.Name)", "potentialAction": [  ] } ] }
                 "@
                 echo ${messageCardBody}
                 echo ${env:STAGINGSTORAGE}
 
-                Invoke-RestMethod -uri $webhookURL -Method Post -body $messageCardBody -ContentType ‘application/json’     
+                Invoke-RestMethod -uri ${env:WEBHOOKURL} -Method Post -body $messageCardBody -ContentType ‘application/json’     
 
 
 
@@ -87,7 +82,7 @@ stages:
     displayName: Deploy
     environment: Production
     pool:
-      vmImage: $(vmImageName)
+      vmImage: $(VMIMAGENAME)
     strategy:
       runOnce:
         deploy:
@@ -96,7 +91,7 @@ stages:
             displayName: 'AzureBlob File Copy'
             inputs:
               SourcePath: '$(Pipeline.Workspace)/drop'
-              azureSubscription: 'Azure for Students(1)(fe0e1401-29d7-4a84-8b63-24d1d6c39189)'
+              azureSubscription: 'azconnection'
               Destination: 'AzureBlob'
               storage: $(PRODUCTIONSTORAGE)
               ContainerName: 'input'
@@ -110,13 +105,11 @@ stages:
               script: |
                 # Write your PowerShell commands here.
                 
-                $webhookURL =
-                "https://kacorp173.webhook.office.com/webhookb2/65ec2ae1-1b20-4824-9811-feafb8ab253a@82bb0453-fb71-4ed9-a94c-9630e87971bc/IncomingWebhook/7386130c16984f2c8cd7dd8bb5ec6e0c/e1d27e51-b97e-471a-b7e9-ef6bd1c604c6"
-
+               
                 $messageCardBody=@"
                 { "@type": "MessageCard", "@context": "https://schema.org/extensions", "summary": "1 new build message", "themeColor": "0078D7", "sections": [ { "activityImage": "https://cdn2.iconfinder.com/data/icons/weby-flat-vol-1/512/1_Approved-check-checkbox-confirm-green-success-tick-512.png", "activityTitle": "Notification", "activitySubtitle": "Copy Files", "facts": [ { "name": "EnvName:", "value": "$(Environment.Name)" }, { "name": "ApplicationName:", "value": "${env:PRODUCTIONSTORAGE}" },{ "name": "BuildNumber:", "value": "$(Build.BuildNumber)" },{ "name": "BuildStatus:", "value": "$(Agent.JobStatus)" }], "text": "Deployment to $(Environment.Name)", "potentialAction": [  ] } ] }
                 "@
                 echo ${messageCardBody}
                 echo ${env:PRODUCTIONSTORAGE}
 
-                Invoke-RestMethod -uri $webhookURL -Method Post -body $messageCardBody -ContentType ‘application/json’         
+                Invoke-RestMethod -uri ${env:WEBHOOKURL} -Method Post -body $messageCardBody -ContentType ‘application/json’         
